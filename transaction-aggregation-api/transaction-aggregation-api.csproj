@@ -7,4 +7,8 @@
     <RootNamespace>transaction_aggregation_api</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\transaction-aggregation-app\transaction-aggregation-app.csproj" />
+  </ItemGroup>
+
 </Project>

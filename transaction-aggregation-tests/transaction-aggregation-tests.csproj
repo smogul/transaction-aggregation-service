@@ -18,6 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\transaction-aggregation-api\transaction-aggregation-api.csproj" />
+    <ProjectReference Include="..\transaction-aggregation-app\transaction-aggregation-app.csproj" />
+    <ProjectReference Include="..\transaction-aggregation-domain\transaction-aggregation-domain.csproj" />
+    <ProjectReference Include="..\transaction-aggregation-infra\transaction-aggregation-infra.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
