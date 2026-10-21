@@ -1,7 +1,0 @@
-<Solution>
-  <Project Path="../transaction-aggregation.app/transaction-aggregation.app.csproj" />
-  <Project Path="../transaction-aggregation.domain/transaction-aggregation.domain.csproj" />
-  <Project Path="../transaction-aggregation.infra/transaction-aggregation.infra.csproj" />
-  <Project Path="../transaction-aggregation.test/transaction-aggregation.test.csproj" />
-  <Project Path="transaction-aggregation.api.csproj" />
-</Solution>
