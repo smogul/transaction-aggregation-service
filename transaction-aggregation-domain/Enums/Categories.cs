@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace transaction_aggregation_domain.Enums
+﻿namespace transaction_aggregation_domain.Enums
 {
+    // The labels we can stick on a transaction, like labels on jars.
+    // Example: "NETFLIX SUBSCRIPTION" goes into the Entertainment jar.
     public enum Categories
     {
         Uncategorized,
@@ -19,8 +15,7 @@ namespace transaction_aggregation_domain.Enums
         Household,
         Transfer,
         Fees,
-        Communication
-
+        Communication,
+        Income
     }
 }
-

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,6 +10,19 @@
   <ItemGroup>
     <ProjectReference Include="..\transaction-aggregation-app\transaction-aggregation-app.csproj" />
     <ProjectReference Include="..\transaction-aggregation-domain\transaction-aggregation-domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
+  </ItemGroup>
+
+  <!-- The mock data files are copied next to the app, so it can read them at SeedData/... -->
+  <ItemGroup>
+    <None Update="SeedData\transactions.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="SeedData\mock-bank-transactions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

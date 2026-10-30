@@ -1,45 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using transaction_aggregation_domain.Entities;
-using transaction_aggregation_domain.Enums;
 using transaction_aggregation_domain.Interfaces;
+using transaction_aggregation_infra.SeedData;
 
 namespace transaction_aggregation_infra.DataAccess
 {
+    // Data source 2 of 5: a dummy data class, pretending to be GoTyme.
+    // The rows themselves live in SeedData/GoTymeSeedData.cs. This class only hands out the ones for one account.
+    // Example: asking for "1000000002" returns just the 2 savings account rows.
     public class MockGoTymeStatementSource : ITransactionSource
     {
-        public string SourceSystem => "GoTymeStatements";
+        public string SourceSystem => GoTymeSeedData.SourceSystem;
 
         public Task<IEnumerable<Transaction>> GetTransactionsAsync(string accountId)
         {
-            return Task.FromResult<IEnumerable<Transaction>>(new List<Transaction>
-            {
-                new Transaction
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    AccountId = accountId,
-                    Amount = 100.00m,
-                    Currency = Currency.USD,
-                    TransactionDate = DateTime.UtcNow.AddDays(-1),
-                    Description = "Mock transaction 1",
-                    Category = Categories.Uncategorized,
-                    SourceSystem = SourceSystem
-                },
-                new Transaction
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    AccountId = accountId,
-                    Amount = 200.00m,
-                    Currency = Currency.USD,
-                    TransactionDate = DateTime.UtcNow.AddDays(-2),
-                    Description = "Mock transaction 2",
-                    Category = Categories.Uncategorized,
-                    SourceSystem = SourceSystem
-                }
-            });
+            var transactions = GoTymeSeedData.CreateTransactions().Where(t => t.AccountId == accountId).ToList();
+
+            return Task.FromResult<IEnumerable<Transaction>>(transactions);
         }
     }
 }
