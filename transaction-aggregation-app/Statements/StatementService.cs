@@ -88,9 +88,18 @@ namespace transaction_aggregation_app.Statements
             return new DownloadLinkDTO
             {
                 StatementId = statement.Id,
+                FromDate = statement.FromDate,
+                ToDate = statement.ToDate,
                 Url = $"{statementsBaseUrl}/{statement.Id}/download",
                 ExpiresAt = downloadLink.ExpiresAt
             };
+        }
+
+        public async Task<DownloadLinkDTO> CreateStatementDownloadLinkAsync(string accountId, DateTime fromDate, DateTime toDate, string statementsBaseUrl)
+        {
+            var statement = await CreateStatementAsync(accountId, fromDate, toDate);
+
+            return await CreateDownloadLinkAsync(statement.Id, statementsBaseUrl);
         }
 
         public async Task<(string FileName, byte[] Content)> DownloadStatementAsync(string statementId)

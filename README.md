@@ -61,13 +61,16 @@ The endpoints are:
 - GET /api/accounts/{accountId}
 - GET /api/accounts/{accountId}/balance
 - POST /api/accounts/{accountId}/statements
+- POST /api/accounts/{accountId}/statements/download-link
 - POST /api/accounts/{accountId}/statements/upload
 - GET /api/accounts/{accountId}/statements
 - POST /api/statements/{statementId}/download-link
 - GET /api/statements/{statementId}/download
 - GET /health
 
-To download a statement, create or upload it, ask for a download link, then open the link before it expires.
+The quickest way to get a statement is POST /api/accounts/{accountId}/statements/download-link with a date range, for example {"fromDate": "2026-09-01", "toDate": "2026-09-30"}. It makes a PDF of only the transactions in that period and gives back a download link. Open the link within 15 minutes.
+
+An uploaded statement has no date range. Ask for its link with POST /api/statements/{statementId}/download-link.
 
 ## Run the tests
 

@@ -99,6 +99,19 @@ namespace transaction_aggregation_tests.Api
         }
 
         [Fact]
+        public async Task StatementDownloadLink_ForAPeriod_NeedsAToken()
+        {
+            var body = JsonContent.Create(new { fromDate = "2026-09-01", toDate = "2026-09-30" });
+
+            Assert.Equal(HttpStatusCode.Unauthorized, (await _client.PostAsync("/api/accounts/1000000001/statements/download-link", body)).StatusCode);
+
+            var request = Request(HttpMethod.Post, "/api/accounts/1000000001/statements/download-link", FapiApiFactory.CreateToken());
+            request.Content = JsonContent.Create(new { fromDate = "2026-09-01", toDate = "2026-09-30" });
+
+            Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(request)).StatusCode);
+        }
+
+        [Fact]
         public async Task WithAToken_UploadLinkAndDownloadAllWork()
         {
             var token = FapiApiFactory.CreateToken();

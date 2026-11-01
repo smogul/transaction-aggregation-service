@@ -135,12 +135,60 @@ namespace transaction_aggregation_tests.Statements
             var service = CreateService();
             var statement = await service.UploadStatementAsync("1000000001", "september.txt", new byte[] { 9 });
 
-            await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
+            var link = await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
             var (fileName, _) = await service.DownloadStatementAsync(statement.Id);
 
             Assert.Null(statement.FromDate);
             Assert.Null(statement.ToDate);
+            Assert.Null(link.FromDate);
+            Assert.Null(link.ToDate);
             Assert.Equal($"statement-1000000001-{statement.CreatedAt:yyyy-MM-dd}.pdf", fileName);
+        }
+
+        [Fact]
+        public async Task CreateStatementDownloadLink_MakesAStatementForThePeriod_WithALinkToIt()
+        {
+            var service = CreateService();
+
+            var link = await service.CreateStatementDownloadLinkAsync("1000000001", September1, September30, StatementsBaseUrl);
+
+            var statement = Assert.Single(_repository.Statements);
+            Assert.Equal(statement.Id, link.StatementId);
+            Assert.Equal(September1, link.FromDate);
+            Assert.Equal(September30, link.ToDate);
+            Assert.Equal($"https://bank.test/api/statements/{statement.Id}/download", link.Url);
+            Assert.Equal("T2", Assert.Single(_pdfGenerator.LastTransactions).Id);
+        }
+
+        [Fact]
+        public async Task CreateStatementDownloadLink_DownloadIsNamedAfterThePeriod()
+        {
+            var service = CreateService();
+
+            var link = await service.CreateStatementDownloadLinkAsync(" 1000000001 ", September1, September30, StatementsBaseUrl);
+            var (fileName, content) = await service.DownloadStatementAsync(link.StatementId);
+
+            Assert.Equal("statement-1000000001-2026-09-01-to-2026-09-30.pdf", fileName);
+            Assert.Equal(FakeStatementPdfGenerator.PdfBytes, content);
+        }
+
+        [Fact]
+        public async Task CreateStatementDownloadLink_FromDateAfterToDate_ThrowsArgumentException()
+        {
+            var service = CreateService();
+
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                service.CreateStatementDownloadLinkAsync("1000000001", September30, September1, StatementsBaseUrl));
+            Assert.Empty(_repository.Statements);
+        }
+
+        [Fact]
+        public async Task CreateStatementDownloadLink_UnknownAccount_ThrowsNotFound()
+        {
+            var service = CreateService();
+
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                service.CreateStatementDownloadLinkAsync("9999999999", September1, September30, StatementsBaseUrl));
         }
 
         [Fact]

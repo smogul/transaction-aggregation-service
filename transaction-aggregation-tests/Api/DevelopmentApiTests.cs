@@ -173,7 +173,34 @@ namespace transaction_aggregation_tests.Api
         }
 
         [Fact]
-        public async Task Swagger_ListsTheSevenEndpoints_WithNoLogin()
+        public async Task StatementDownloadLink_ForAPeriod_DownloadsAStatementNamedAfterThatPeriod()
+        {
+            var response = await _client.PostAsJsonAsync("/api/accounts/1000000001/statements/download-link", new { fromDate = "2026-09-01", toDate = "2026-09-30" });
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var link = await ReadJson(response);
+            Assert.StartsWith("2026-09-01", link.GetProperty("fromDate").GetString());
+            Assert.StartsWith("2026-09-30", link.GetProperty("toDate").GetString());
+
+            var download = await _client.GetAsync(link.GetProperty("url").GetString());
+
+            Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+            Assert.Equal("statement-1000000001-2026-09-01-to-2026-09-30.pdf", download.Content.Headers.ContentDisposition?.FileNameStar);
+            Assert.True(IsPdf(await download.Content.ReadAsByteArrayAsync()));
+        }
+
+        [Theory]
+        [InlineData("{}")]
+        [InlineData("{\"fromDate\":\"2026-10-01\",\"toDate\":\"2026-09-30\"}")]
+        public async Task StatementDownloadLink_BadDates_Returns400(string body)
+        {
+            var response = await _client.PostAsync("/api/accounts/1000000001/statements/download-link", new StringContent(body, Encoding.UTF8, "application/json"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Swagger_ListsTheEightEndpoints_WithNoLogin()
         {
             var swagger = await _client.GetFromJsonAsync<JsonElement>("/swagger/v1/swagger.json");
 
@@ -184,6 +211,7 @@ namespace transaction_aggregation_tests.Api
                 "/api/accounts/{accountId}",
                 "/api/accounts/{accountId}/balance",
                 "/api/accounts/{accountId}/statements",
+                "/api/accounts/{accountId}/statements/download-link",
                 "/api/accounts/{accountId}/statements/upload",
                 "/api/statements/{statementId}/download",
                 "/api/statements/{statementId}/download-link",

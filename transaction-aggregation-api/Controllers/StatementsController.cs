@@ -16,12 +16,20 @@ namespace transaction_aggregation_api.Controllers
             _statementService = statementService;
         }
 
+        private string StatementsBaseUrl => $"{Request.Scheme}://{Request.Host}/api/statements";
+
         [HttpPost("accounts/{accountId}/statements")]
         public async Task<ActionResult<Statement>> CreateStatement(string accountId, CreateStatementRequest request)
         {
             var statement = await _statementService.CreateStatementAsync(accountId, request.FromDate!.Value, request.ToDate!.Value);
 
             return CreatedAtAction(nameof(GetStatements), new { accountId = statement.AccountId }, statement);
+        }
+
+        [HttpPost("accounts/{accountId}/statements/download-link")]
+        public async Task<ActionResult<DownloadLinkDTO>> CreateStatementDownloadLink(string accountId, CreateStatementRequest request)
+        {
+            return Ok(await _statementService.CreateStatementDownloadLinkAsync(accountId, request.FromDate!.Value, request.ToDate!.Value, StatementsBaseUrl));
         }
 
         [HttpPost("accounts/{accountId}/statements/upload")]
@@ -45,9 +53,7 @@ namespace transaction_aggregation_api.Controllers
         [HttpPost("statements/{statementId}/download-link")]
         public async Task<ActionResult<DownloadLinkDTO>> CreateDownloadLink(string statementId)
         {
-            var statementsBaseUrl = $"{Request.Scheme}://{Request.Host}/api/statements";
-
-            return Ok(await _statementService.CreateDownloadLinkAsync(statementId, statementsBaseUrl));
+            return Ok(await _statementService.CreateDownloadLinkAsync(statementId, StatementsBaseUrl));
         }
 
         [HttpGet("statements/{statementId}/download")]
