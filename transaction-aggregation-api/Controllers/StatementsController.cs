@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using transaction_aggregation_api.Models;
 using transaction_aggregation_app.Statements;
@@ -27,9 +28,9 @@ namespace transaction_aggregation_api.Controllers
         }
 
         [HttpPost("accounts/{accountId}/statements/download-link")]
-        public async Task<ActionResult<DownloadLinkDTO>> CreateStatementDownloadLink(string accountId, CreateStatementRequest request)
+        public async Task<ActionResult<DownloadLinkDTO>> CreateStatementDownloadLink(string accountId, [FromQuery, Required] DateTime? fromDate, [FromQuery, Required] DateTime? toDate)
         {
-            return Ok(await _statementService.CreateStatementDownloadLinkAsync(accountId, request.FromDate!.Value, request.ToDate!.Value, StatementsBaseUrl));
+            return Ok(await _statementService.CreateStatementDownloadLinkAsync(accountId, fromDate!.Value, toDate!.Value, StatementsBaseUrl));
         }
 
         [HttpPost("accounts/{accountId}/statements/upload")]

@@ -68,7 +68,7 @@ The endpoints are:
 - GET /api/statements/{statementId}/download
 - GET /health
 
-The quickest way to get a statement is POST /api/accounts/{accountId}/statements/download-link with a date range, for example {"fromDate": "2026-09-01", "toDate": "2026-09-30"}. It makes a PDF of only the transactions in that period and gives back a download link. Open the link within 15 minutes.
+The quickest way to get a statement is POST /api/accounts/{accountId}/statements/download-link?fromDate=2026-09-01&toDate=2026-09-30. In Swagger, fill in the fromDate and toDate boxes. It makes a PDF of only the transactions in that period and gives back a download link. Open the link within 15 minutes.
 
 An uploaded statement has no date range. Ask for its link with POST /api/statements/{statementId}/download-link.
 

@@ -101,14 +101,10 @@ namespace transaction_aggregation_tests.Api
         [Fact]
         public async Task StatementDownloadLink_ForAPeriod_NeedsAToken()
         {
-            var body = JsonContent.Create(new { fromDate = "2026-09-01", toDate = "2026-09-30" });
+            const string url = "/api/accounts/1000000001/statements/download-link?fromDate=2026-09-01&toDate=2026-09-30";
 
-            Assert.Equal(HttpStatusCode.Unauthorized, (await _client.PostAsync("/api/accounts/1000000001/statements/download-link", body)).StatusCode);
-
-            var request = Request(HttpMethod.Post, "/api/accounts/1000000001/statements/download-link", FapiApiFactory.CreateToken());
-            request.Content = JsonContent.Create(new { fromDate = "2026-09-01", toDate = "2026-09-30" });
-
-            Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(request)).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await _client.PostAsync(url, null)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(Request(HttpMethod.Post, url, FapiApiFactory.CreateToken()))).StatusCode);
         }
 
         [Fact]

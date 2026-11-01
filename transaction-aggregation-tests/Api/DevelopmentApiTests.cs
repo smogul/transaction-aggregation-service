@@ -175,7 +175,7 @@ namespace transaction_aggregation_tests.Api
         [Fact]
         public async Task StatementDownloadLink_ForAPeriod_DownloadsAStatementNamedAfterThatPeriod()
         {
-            var response = await _client.PostAsJsonAsync("/api/accounts/1000000001/statements/download-link", new { fromDate = "2026-09-01", toDate = "2026-09-30" });
+            var response = await _client.PostAsync("/api/accounts/1000000001/statements/download-link?fromDate=2026-09-01&toDate=2026-09-30", null);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var link = await ReadJson(response);
@@ -190,13 +190,29 @@ namespace transaction_aggregation_tests.Api
         }
 
         [Theory]
-        [InlineData("{}")]
-        [InlineData("{\"fromDate\":\"2026-10-01\",\"toDate\":\"2026-09-30\"}")]
-        public async Task StatementDownloadLink_BadDates_Returns400(string body)
+        [InlineData("")]
+        [InlineData("?fromDate=2026-09-01")]
+        [InlineData("?fromDate=yesterday&toDate=2026-09-30")]
+        [InlineData("?fromDate=2026-10-01&toDate=2026-09-30")]
+        public async Task StatementDownloadLink_BadDates_Returns400(string query)
         {
-            var response = await _client.PostAsync("/api/accounts/1000000001/statements/download-link", new StringContent(body, Encoding.UTF8, "application/json"));
+            var response = await _client.PostAsync($"/api/accounts/1000000001/statements/download-link{query}", null);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Swagger_ShowsRequiredDateBoxesOnTheDateRangeDownloadLink()
+        {
+            var swagger = await _client.GetFromJsonAsync<JsonElement>("/swagger/v1/swagger.json");
+
+            var dateBoxes = swagger.GetProperty("paths").GetProperty("/api/accounts/{accountId}/statements/download-link").GetProperty("post")
+                .GetProperty("parameters").EnumerateArray()
+                .Where(parameter => parameter.GetProperty("in").GetString() == "query")
+                .ToDictionary(parameter => parameter.GetProperty("name").GetString()!, parameter => parameter.GetProperty("required").GetBoolean());
+
+            Assert.Equal(new[] { "fromDate", "toDate" }, dateBoxes.Keys.OrderBy(name => name));
+            Assert.All(dateBoxes.Values, Assert.True);
         }
 
         [Fact]
