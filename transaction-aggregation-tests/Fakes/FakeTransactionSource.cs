@@ -3,7 +3,6 @@ using transaction_aggregation_domain.Interfaces;
 
 namespace transaction_aggregation_tests.Fakes
 {
-    // A pretend data source that returns whatever transactions the test gives it.
     public class FakeTransactionSource : ITransactionSource
     {
         private readonly List<Transaction> _transactions;

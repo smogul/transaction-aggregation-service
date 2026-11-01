@@ -2,15 +2,8 @@ using transaction_aggregation_domain.Enums;
 
 namespace transaction_aggregation_app.Transactions
 {
-    // Decides which category a transaction belongs in by looking for keywords in its description.
-    // It is like sorting sweets into jars by reading the wrapper.
-    //
-    // Example: "CHECKERS SANDTON CITY" contains "CHECKERS", so it goes into the Food jar.
-    // Example: "PAYPAL *ONLINESTORE" matches nothing, so it stays Uncategorized.
     public class TransactionCategoriser
     {
-        // The rules are checked from top to bottom and the first match wins.
-        // Order matters: "UBER EATS" must be checked (Food) before "UBER TRIP" (Transport) gets a chance.
         private static readonly List<(Categories Category, string[] Keywords)> Rules = new()
         {
             (Categories.Income, new[] { "SALARY", "INTEREST EARNED" }),

@@ -3,9 +3,6 @@ using transaction_aggregation_domain.Interfaces;
 
 namespace transaction_aggregation_tests.Fakes
 {
-    // Pretend versions of the statement database and the PDF maker.
-    // Everything is kept in memory, so the tests never touch the disk.
-
     public class FakeStatementRepository : IStatementRepository
     {
         public List<Statement> Statements { get; } = new();
@@ -33,9 +30,9 @@ namespace transaction_aggregation_tests.Fakes
             return Task.CompletedTask;
         }
 
-        public Task<DownloadLink?> GetDownloadLinkAsync(string tokenHash)
+        public Task<DownloadLink?> GetLatestDownloadLinkAsync(string statementId)
         {
-            return Task.FromResult(DownloadLinks.FirstOrDefault(l => l.TokenHash == tokenHash));
+            return Task.FromResult(DownloadLinks.Where(l => l.StatementId == statementId).OrderByDescending(l => l.ExpiresAt).FirstOrDefault());
         }
     }
 
@@ -52,7 +49,7 @@ namespace transaction_aggregation_tests.Fakes
             return PdfBytes;
         }
 
-        public byte[] CreatePdfFromDocument(Account account, DateTime fromDate, DateTime toDate, string fileName, byte[] content)
+        public byte[] CreatePdfFromDocument(Account account, string fileName, byte[] content)
         {
             LastUploadedFileName = fileName;
             return PdfBytes;

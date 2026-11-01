@@ -4,9 +4,6 @@ using transaction_aggregation_infra.SeedData;
 
 namespace transaction_aggregation_infra.DataAccess
 {
-    // Data source 1 of 5: a dummy data class, pretending to be Absa.
-    // The rows themselves live in SeedData/AbsaSeedData.cs. This class only hands out the ones for one account.
-    // Example: asking for "1000000002" returns just the 2 savings account rows.
     public class MockAbsaStatementSource : ITransactionSource
     {
         public string SourceSystem => AbsaSeedData.SourceSystem;

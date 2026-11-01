@@ -4,11 +4,6 @@ using transaction_aggregation_domain.Exceptions;
 
 namespace transaction_aggregation_api.Errors
 {
-    // One place that catches every error and turns it into a tidy answer (a "ProblemDetails").
-    // So the controllers never need try/catch.
-    //
-    // Example: asking for account "9999999999" throws NotFoundException, and the caller receives
-    //   404 { "title": "Not found", "detail": "Account '9999999999' was not found." }
     public class GlobalExceptionHandler : IExceptionHandler
     {
         private readonly ILogger<GlobalExceptionHandler> _logger;
@@ -36,7 +31,6 @@ namespace transaction_aggregation_api.Errors
             {
                 Status = status,
                 Title = title,
-                // We never show the inside details of a crash to the caller, only to our own logs.
                 Detail = status == StatusCodes.Status500InternalServerError ? "Please try again later." : exception.Message
             };
 

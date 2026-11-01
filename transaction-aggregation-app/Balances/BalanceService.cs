@@ -3,10 +3,6 @@ using transaction_aggregation_app.Transactions;
 
 namespace transaction_aggregation_app.Balances
 {
-    // The Balances module. It works out how much money is in an account right now.
-    //
-    // Example: you start with R5 000 in your piggy bank, put in R75 000 and take out R70 000.
-    // Your balance is 5 000 + 75 000 - 70 000 = R10 000.
     public class BalanceService
     {
         private readonly AccountService _accountService;

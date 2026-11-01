@@ -1,15 +1,13 @@
 using System.Text;
 using transaction_aggregation_domain.Entities;
 using transaction_aggregation_infra.Statements;
+using transaction_aggregation_tests.Fakes;
 
 namespace transaction_aggregation_tests.Statements
 {
-    // These tests make real PDFs with QuestPDF, so they check the actual upload conversion.
     public class StatementPdfGeneratorTests
     {
         private static readonly Account Account = new() { Id = "1000000001", AccountName = "Everyday" };
-        private static readonly DateTime September1 = new(2026, 9, 1);
-        private static readonly DateTime September30 = new(2026, 9, 30);
 
         private readonly StatementPdfGenerator _generator = new();
 
@@ -37,7 +35,6 @@ namespace transaction_aggregation_tests.Statements
         [Fact]
         public void Picture_BecomesAPdf()
         {
-            // The smallest possible PNG picture: one single dot.
             var content = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==");
 
             Assert.True(IsPdf(Upload("scan.PNG", content)));
@@ -76,12 +73,82 @@ namespace transaction_aggregation_tests.Statements
             Assert.Throws<ArgumentException>(() => Upload(fileName, new byte[] { 0, 1, 2, 3 }));
         }
 
-        private byte[] Upload(string fileName, byte[] content)
+        [Fact]
+        public void GeneratedStatement_WithTransactions_IsAPdf()
         {
-            return _generator.CreatePdfFromDocument(Account, September1, September30, fileName, content);
+            var transactions = new[]
+            {
+                TestData.Transaction("T1", "1000000001", "2026-09-01", "SALARY", 25000m),
+                TestData.Transaction("T2", "1000000001", "2026-09-02", "CHECKERS", -845.30m)
+            };
+
+            Assert.True(IsPdf(_generator.CreatePdf(Account, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30), transactions)));
         }
 
-        // Every real PDF file starts with the letters "%PDF-".
+        [Fact]
+        public void GeneratedStatement_WithNoTransactions_IsStillAPdf()
+        {
+            Assert.True(IsPdf(_generator.CreatePdf(Account, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30), Array.Empty<Transaction>())));
+        }
+
+        [Fact]
+        public void GeneratedStatement_WithManyTransactions_RunsOverSeveralPages()
+        {
+            var transactions = Enumerable.Range(1, 300)
+                .Select(i => TestData.Transaction($"T{i}", "1000000001", "2026-09-01", $"PURCHASE {i}", -10m));
+
+            Assert.True(IsPdf(_generator.CreatePdf(Account, new DateTime(2026, 9, 1), new DateTime(2026, 9, 30), transactions)));
+        }
+
+        [Fact]
+        public void WordFile_BecomesAPdf()
+        {
+            Assert.True(IsPdf(Upload("september.docx", TestFiles.CreateWordFile("Absa statement", "01 Sep SALARY 25000.00"))));
+        }
+
+        [Fact]
+        public void EmptySpreadsheet_BecomesAPdf()
+        {
+            Assert.True(IsPdf(Upload("empty.xlsx", TestFiles.CreateExcelFile(columns: 0, rows: 0))));
+        }
+
+        [Theory]
+        [InlineData(12)]
+        [InlineData(13)]
+        [InlineData(60)]
+        [InlineData(250)]
+        public void WideSpreadsheet_BecomesAPdf(int columns)
+        {
+            Assert.True(IsPdf(Upload("wide.xlsx", TestFiles.CreateExcelFile(columns, rows: 5))));
+        }
+
+        [Fact]
+        public void TextWithAVeryLongLine_BecomesAPdf()
+        {
+            Assert.True(IsPdf(Upload("minified.json", Encoding.UTF8.GetBytes(new string('A', 5000)))));
+        }
+
+        [Fact]
+        public void TextWithAByteOrderMark_BecomesAPdf()
+        {
+            var content = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes("Date,Amount\n2026-09-01,25000.00")).ToArray();
+
+            Assert.True(IsPdf(Upload("excel-export.csv", content)));
+        }
+
+        [Fact]
+        public void Utf16Text_BecomesAPdf()
+        {
+            var content = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("Saved from Notepad as Unicode")).ToArray();
+
+            Assert.True(IsPdf(Upload("notepad.txt", content)));
+        }
+
+        private byte[] Upload(string fileName, byte[] content)
+        {
+            return _generator.CreatePdfFromDocument(Account, fileName, content);
+        }
+
         private static bool IsPdf(byte[] content)
         {
             return content.AsSpan().StartsWith("%PDF-"u8);

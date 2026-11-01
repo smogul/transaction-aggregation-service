@@ -4,11 +4,6 @@ using transaction_aggregation_infra.SeedData;
 
 namespace transaction_aggregation_infra.DataAccess
 {
-    // Our SQLite database. Each DbSet is one table.
-    // Example: _dbContext.Accounts is the Accounts table, and each Account object is one row in it.
-    //
-    // Where the database lives comes from ConnectionStrings:Database in appsettings.
-    // Today it is in memory, so no .db file is made. Change the connection string to use a file or another server.
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -22,10 +17,9 @@ namespace transaction_aggregation_infra.DataAccess
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // An index is like the index at the back of a book: it makes finding a link by its token fast.
-            modelBuilder.Entity<DownloadLink>().HasIndex(l => l.TokenHash).IsUnique();
+            modelBuilder.Entity<Statement>().Property(s => s.CreatedAt).HasConversion(value => value, value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+            modelBuilder.Entity<DownloadLink>().Property(l => l.ExpiresAt).HasConversion(value => value, value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-            // Seed data: rows that are put into the tables when the database is created.
             modelBuilder.Entity<Account>().HasData(DatabaseSeedData.Accounts);
             modelBuilder.Entity<Transaction>().HasData(DatabaseSeedData.Transactions);
         }

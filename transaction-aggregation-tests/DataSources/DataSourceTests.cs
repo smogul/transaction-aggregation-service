@@ -1,10 +1,9 @@
+using transaction_aggregation_domain.Interfaces;
 using transaction_aggregation_infra.DataAccess;
 using transaction_aggregation_infra.SeedData;
 
 namespace transaction_aggregation_tests.DataSources
 {
-    // Checks that each data source turns its own format into our Transaction shape correctly.
-    // They all read the real mock data in the SeedData folder.
     public class DataSourceTests
     {
         private static readonly string ExcelFilePath = Path.Combine(AppContext.BaseDirectory, "SeedData", "transactions.xlsx");
@@ -54,6 +53,26 @@ namespace transaction_aggregation_tests.DataSources
         }
 
         [Fact]
+        public async Task ApiSource_UnknownAccount_GetsNoRows()
+        {
+            Assert.Empty(await CreateApiSource().GetTransactionsAsync("9999999999"));
+        }
+
+        [Fact]
+        public async Task DummySources_GiveOnlyThatAccountsRows_LabelledWithTheirOwnName()
+        {
+            var sources = new ITransactionSource[] { new MockAbsaStatementSource(), new MockGoTymeStatementSource() };
+
+            foreach (var source in sources)
+            {
+                var transactions = (await source.GetTransactionsAsync("1000000002")).ToList();
+
+                Assert.Equal(2, transactions.Count);
+                Assert.All(transactions, t => Assert.Equal(source.SourceSystem, t.SourceSystem));
+            }
+        }
+
+        [Fact]
         public void SeedAccounts_AllHave10DigitAccountNumbers()
         {
             Assert.All(SeedAccounts, accountId => Assert.Matches("^[0-9]{10}$", accountId));
@@ -74,11 +93,9 @@ namespace transaction_aggregation_tests.DataSources
                 count += (await api.GetTransactionsAsync(accountId)).Count();
             }
 
-            // 25 rows in each of the 5 sources = 125.
             Assert.True(count >= 100, $"Expected at least 100 seed transactions but found {count}.");
         }
 
-        // The same set-up as Program.cs: an HttpClient whose calls are answered by the pretend bank.
         private static ApiTransactionSource CreateApiSource()
         {
             var httpClient = new HttpClient(new MockBankApiHandler(MockBankFilePath)) { BaseAddress = new Uri("https://mock-bank.local/") };

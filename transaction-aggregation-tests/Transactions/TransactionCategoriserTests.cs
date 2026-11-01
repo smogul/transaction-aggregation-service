@@ -7,7 +7,6 @@ namespace transaction_aggregation_tests.Transactions
     {
         private readonly TransactionCategoriser _categoriser = new();
 
-        // Each line below is its own little test: "this description should land in this category".
         [Theory]
         [InlineData("SALARY ACME HOLDINGS", Categories.Income)]
         [InlineData("CHECKERS SANDTON CITY", Categories.Food)]
@@ -29,7 +28,6 @@ namespace transaction_aggregation_tests.Transactions
         [Fact]
         public void Categorise_UberEats_IsFoodNotTransport()
         {
-            // "UBER EATS" also contains "UBER", so the Food rule must be checked before the Transport rule.
             Assert.Equal(Categories.Food, _categoriser.Categorise("UBER EATS ORDER"));
         }
 

@@ -28,7 +28,6 @@ namespace transaction_aggregation_tests.Balances
         {
             var balance = await _service.GetBalanceAsync("1000000001");
 
-            // 1000 to start, + 3000 in, - 400 out = 3600.
             Assert.Equal(1000m, balance.OpeningBalance);
             Assert.Equal(3000m, balance.TotalCredit);
             Assert.Equal(400m, balance.TotalDebit);
@@ -40,7 +39,6 @@ namespace transaction_aggregation_tests.Balances
         {
             var balance = await _service.GetBalanceAsync("1000000002");
 
-            // 500 to start, + 10 interest = 510. The salary and Checkers belong to the other account.
             Assert.Equal(510m, balance.CurrentBalance);
         }
 

@@ -39,9 +39,13 @@ namespace transaction_aggregation_infra.DataAccess
             await _dbContext.SaveChangesAsync();
         }
 
-        public async Task<DownloadLink?> GetDownloadLinkAsync(string tokenHash)
+        public async Task<DownloadLink?> GetLatestDownloadLinkAsync(string statementId)
         {
-            return await _dbContext.DownloadLinks.AsNoTracking().FirstOrDefaultAsync(l => l.TokenHash == tokenHash);
+            return await _dbContext.DownloadLinks
+                .AsNoTracking()
+                .Where(l => l.StatementId == statementId)
+                .OrderByDescending(l => l.ExpiresAt)
+                .FirstOrDefaultAsync();
         }
     }
 }

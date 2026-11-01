@@ -4,15 +4,10 @@ using transaction_aggregation_domain.Enums;
 
 namespace transaction_aggregation_infra.SeedData
 {
-    // The starting rows for the database (data source 4 of 5).
-    // They are written into the tables when the app starts and the database is still empty.
-    // The database lives in memory, so every restart begins again from these rows.
     public static class DatabaseSeedData
     {
         public const string SourceSystem = "CapitecDatabase";
 
-        // Two customers and three accounts.
-        // CUST-001 has an everyday account and a savings account. CUST-002 has one everyday account.
         public static readonly Account[] Accounts =
         {
             new Account { Id = "1000000001", CustomerId = "CUST-001", AccountName = "Everyday Account", Currency = Currency.ZAR, OpeningBalance = 5000.00m },
@@ -20,7 +15,6 @@ namespace transaction_aggregation_infra.SeedData
             new Account { Id = "2000000001", CustomerId = "CUST-002", AccountName = "Everyday Account", Currency = Currency.ZAR, OpeningBalance = 3000.00m }
         };
 
-        // 25 transactions from July 2026. They all start Uncategorized, the categoriser labels them later.
         public static readonly Transaction[] Transactions =
         {
             Create("DB-001", "1000000001", "2026-07-01", "SALARY ACME HOLDINGS", 25000.00m),

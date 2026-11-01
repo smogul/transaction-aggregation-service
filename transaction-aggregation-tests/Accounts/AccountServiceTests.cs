@@ -24,15 +24,14 @@ namespace transaction_aggregation_tests.Accounts
             Assert.Equal("1000000001", account.Id);
         }
 
-        // Each line is a bad account number that must be refused before we even look in the database.
         [Theory]
         [InlineData("")]
         [InlineData("   ")]
-        [InlineData("123456789")]       // 9 digits, one too short
-        [InlineData("10000000011")]     // 11 digits, one too long
-        [InlineData("10000000AB")]      // letters
-        [InlineData("1000 00001")]      // a space in the middle
-        [InlineData("ACC-1001")]        // the old style of id
+        [InlineData("123456789")]
+        [InlineData("10000000011")]
+        [InlineData("10000000AB")]
+        [InlineData("1000 00001")]
+        [InlineData("ACC-1001")]
         public async Task GetAccount_NotExactly10Digits_ThrowsArgumentException(string accountId)
         {
             await Assert.ThrowsAsync<ArgumentException>(() => _service.GetAccountAsync(accountId));
@@ -42,6 +41,12 @@ namespace transaction_aggregation_tests.Accounts
         public async Task GetAccount_GoodNumberButNoSuchAccount_ThrowsNotFound()
         {
             await Assert.ThrowsAsync<NotFoundException>(() => _service.GetAccountAsync("9999999999"));
+        }
+
+        [Fact]
+        public async Task GetAccount_NoNumberAtAll_ThrowsArgumentException()
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.GetAccountAsync(null!));
         }
     }
 }

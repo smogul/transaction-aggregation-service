@@ -3,7 +3,6 @@ using transaction_aggregation_domain.Interfaces;
 
 namespace transaction_aggregation_tests.Fakes
 {
-    // A pretend database with two accounts for one customer, kept in a plain list.
     public class FakeAccountRepository : IAccountRepository
     {
         public List<Account> Accounts { get; } = new()

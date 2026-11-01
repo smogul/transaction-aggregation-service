@@ -11,34 +11,26 @@ using WordParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 
 namespace transaction_aggregation_infra.Statements
 {
-    // Draws statement PDFs with the QuestPDF library.
-    // There are two kinds of statement, and both get the same page:
-    // a heading at the top, the content in the middle and page numbers at the bottom.
-    //   1. CreatePdf: a table of the transactions we collected from our five data sources.
-    //   2. CreatePdfFromDocument: a file the customer uploaded (Word, Excel, a picture, text...), redrawn as a PDF.
     public class StatementPdfGenerator : IStatementPdfGenerator
     {
-        // Every kind of file we can turn into a PDF.
         private static readonly string[] SupportedFiles = { ".pdf", ".docx", ".xlsx", ".png", ".jpg", ".jpeg", ".txt", ".csv", ".json", ".xml", ".md" };
         private static readonly string[] PictureFiles = { ".png", ".jpg", ".jpeg" };
+        private const int MaxTableColumns = 12;
 
         public StatementPdfGenerator()
         {
-            // QuestPDF is free for small companies and personal projects under its Community licence.
             QuestPDF.Settings.License = LicenseType.Community;
 
-            // If an uploaded file has a letter our font cannot draw (like an emoji), show a box instead of crashing.
             QuestPDF.Settings.ThrowOnMissingTextGlyphs = false;
         }
 
         public byte[] CreatePdf(Account account, DateTime fromDate, DateTime toDate, IEnumerable<Transaction> transactions)
         {
-            // On a statement the oldest transaction comes first, like reading a diary from the start.
             var rows = transactions.OrderBy(t => t.TransactionDate).ToList();
             var moneyIn = rows.Where(t => t.Amount > 0).Sum(t => t.Amount);
             var moneyOut = rows.Where(t => t.Amount < 0).Sum(t => -t.Amount);
 
-            return DrawStatement(account, fromDate, toDate, content => content.Column(column =>
+            return DrawStatement(account, $"Period: {fromDate:dd MMM yyyy} to {toDate:dd MMM yyyy}", content => content.Column(column =>
             {
                 column.Item().Table(table =>
                 {
@@ -73,8 +65,7 @@ namespace transaction_aggregation_infra.Statements
             }));
         }
 
-        // Example: "september.docx" becomes a PDF with the account heading on top and the Word text underneath.
-        public byte[] CreatePdfFromDocument(Account account, DateTime fromDate, DateTime toDate, string fileName, byte[] content)
+        public byte[] CreatePdfFromDocument(Account account, string fileName, byte[] content)
         {
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
@@ -83,7 +74,6 @@ namespace transaction_aggregation_infra.Statements
                 throw new ArgumentException($"'{fileName}' cannot be turned into a PDF. Please upload one of these kinds of file: {string.Join(", ", SupportedFiles)}.");
             }
 
-            // A PDF is already a PDF, so we keep it exactly as it is. Every real PDF starts with "%PDF-".
             if (extension == ".pdf")
             {
                 if (!content.AsSpan().StartsWith("%PDF-"u8))
@@ -94,7 +84,6 @@ namespace transaction_aggregation_infra.Statements
                 return content;
             }
 
-            // Step 1: read the file. A picture stays a picture, everything else becomes rows of text.
             Image? picture = null;
             var rows = new List<string[]>();
 
@@ -116,32 +105,27 @@ namespace transaction_aggregation_infra.Statements
             }
             catch (Exception error)
             {
-                // Example: a file called "statement.docx" that is really a photo, or a file that got cut off.
                 throw new ArgumentException($"We could not read '{fileName}'. Please check that the file is not damaged.", error);
             }
 
-            // Step 2: draw what we read onto the statement page.
-            return DrawStatement(account, fromDate, toDate, page => page.Column(column =>
+            return DrawStatement(account, $"Uploaded file: {fileName}", page =>
             {
-                column.Item().PaddingBottom(10).Text($"Uploaded file: {fileName}").Italic();
-
                 if (picture != null)
                 {
-                    column.Item().Image(picture).FitArea();
+                    page.Image(picture).FitArea();
                 }
                 else if (rows.Count == 0)
                 {
-                    column.Item().Text("The uploaded file was empty.");
+                    page.Text("The uploaded file was empty.");
                 }
                 else
                 {
-                    column.Item().Element(container => DrawRows(container, rows));
+                    DrawRows(page, rows);
                 }
-            }));
+            });
         }
 
-        // The page every statement shares. "drawContent" fills in the middle part.
-        private static byte[] DrawStatement(Account account, DateTime fromDate, DateTime toDate, Action<IContainer> drawContent)
+        private static byte[] DrawStatement(Account account, string subtitle, Action<IContainer> drawContent)
         {
             return Document.Create(document =>
             {
@@ -155,7 +139,7 @@ namespace transaction_aggregation_infra.Statements
                     {
                         column.Item().Text("Account Statement").FontSize(20).Bold();
                         column.Item().Text($"{account.AccountName} ({account.Id})");
-                        column.Item().Text($"Period: {fromDate:dd MMM yyyy} to {toDate:dd MMM yyyy}");
+                        column.Item().Text(subtitle);
                     });
 
                     page.Content().PaddingVertical(15).Element(drawContent);
@@ -171,9 +155,13 @@ namespace transaction_aggregation_infra.Statements
             }).GeneratePdf();
         }
 
-        // Draws rows of text as a simple table. A text file has one column, a spreadsheet has many.
         private static void DrawRows(IContainer container, List<string[]> rows)
         {
+            if (rows.Max(row => row.Length) > MaxTableColumns)
+            {
+                rows = rows.Select(row => new[] { string.Join(" | ", row) }).ToList();
+            }
+
             var columnCount = rows.Max(row => row.Length);
 
             container.Table(table =>
@@ -190,15 +178,12 @@ namespace transaction_aggregation_infra.Statements
                 {
                     for (var i = 0; i < columnCount; i++)
                     {
-                        // A short row gets empty cells at the end, so every row lines up.
                         table.Cell().PaddingRight(5).Text(i < row.Length ? row[i] : string.Empty);
                     }
                 }
             });
         }
 
-        // Every filled-in row of the first sheet, cell by cell, as the spreadsheet shows it.
-        // Example: [ ["Date", "Description", "Amount"], ["2026-09-01", "SALARY", "25000.00"] ]
         private static List<string[]> ReadExcel(byte[] content)
         {
             using var workbook = new XLWorkbook(new MemoryStream(content));
@@ -214,7 +199,6 @@ namespace transaction_aggregation_infra.Statements
                 .ToList();
         }
 
-        // Every paragraph of a Word document becomes one line.
         private static List<string[]> ReadWord(byte[] content)
         {
             using var document = WordprocessingDocument.Open(new MemoryStream(content), false);
@@ -228,12 +212,11 @@ namespace transaction_aggregation_infra.Statements
             return body.Descendants<WordParagraph>().Select(paragraph => new[] { paragraph.InnerText }).ToList();
         }
 
-        // Every line of a text file (.txt, .csv, .json...) becomes one line.
         private static List<string[]> ReadText(byte[] content)
         {
-            var text = Encoding.UTF8.GetString(content);
+            using var reader = new StreamReader(new MemoryStream(content), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var text = reader.ReadToEnd();
 
-            // Real text never has a "zero" character in it. If it does, someone renamed another kind of file.
             if (text.Contains('\0'))
             {
                 throw new InvalidDataException("This is not a text file.");
@@ -242,7 +225,6 @@ namespace transaction_aggregation_infra.Statements
             return text.ReplaceLineEndings("\n").TrimEnd('\n').Split('\n').Select(line => new[] { line }).ToList();
         }
 
-        // Example: -845.3 becomes "R -845.30".
         private static string FormatMoney(decimal amount)
         {
             return "R " + amount.ToString("N2", CultureInfo.InvariantCulture);

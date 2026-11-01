@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/TestResults/
+.git/
+transaction-aggregation-tests/
+Dockerfile
+docker-compose.yml
+.dockerignore

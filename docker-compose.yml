@@ -1,0 +1,18 @@
+services:
+  api-development:
+    build: .
+    image: transaction-aggregation-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "8080:8080"
+
+  api-production:
+    build: .
+    image: transaction-aggregation-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Fapi__Authority: ${FAPI_AUTHORITY:-https://auth.example.com/}
+      Fapi__TokenUrl: ${FAPI_TOKEN_URL:-https://auth.example.com/connect/token}
+    ports:
+      - "8081:8080"

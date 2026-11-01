@@ -4,14 +4,10 @@ using transaction_aggregation_domain.Enums;
 
 namespace transaction_aggregation_infra.SeedData
 {
-    // Pretend these 25 transactions from September 2026 came from GoTyme (data source 2 of 5).
-    // They are written straight into the code, so no file, database or internet connection is needed.
     public static class GoTymeSeedData
     {
         public const string SourceSystem = "GoTymeStatements";
 
-        // We build brand new objects every time we are asked, so when the categoriser writes a category
-        // onto a transaction, the seed rows here stay exactly as they are.
         public static List<Transaction> CreateTransactions()
         {
             return new List<Transaction>
@@ -44,7 +40,6 @@ namespace transaction_aggregation_infra.SeedData
             };
         }
 
-        // A small helper so each row above fits on one line.
         private static Transaction Create(string id, string accountId, string date, string description, decimal amount)
         {
             return new Transaction

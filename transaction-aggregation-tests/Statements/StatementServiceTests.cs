@@ -9,7 +9,7 @@ namespace transaction_aggregation_tests.Statements
 {
     public class StatementServiceTests
     {
-        private const string DownloadBaseUrl = "https://bank.test/api/statements/download";
+        private const string StatementsBaseUrl = "https://bank.test/api/statements";
 
         private static readonly DateTime September1 = new(2026, 9, 1);
         private static readonly DateTime September30 = new(2026, 9, 30);
@@ -67,7 +67,7 @@ namespace transaction_aggregation_tests.Statements
         {
             var service = CreateService();
 
-            var statement = await service.UploadStatementAsync("1000000001", September1, September30, " september.docx ", new byte[] { 9, 9, 9 });
+            var statement = await service.UploadStatementAsync("1000000001", " september.docx ", new byte[] { 9, 9, 9 });
 
             Assert.Equal("september.docx", _pdfGenerator.LastUploadedFileName);
             Assert.Equal(FakeStatementPdfGenerator.PdfBytes, await _fileStore.ReadAsync(statement.FileName));
@@ -79,9 +79,36 @@ namespace transaction_aggregation_tests.Statements
         {
             var service = CreateService();
 
-            await service.UploadStatementAsync("1000000001", September1, September30, "../../secret/september.docx", new byte[] { 9 });
+            await service.UploadStatementAsync("1000000001", "../../secret/september.docx", new byte[] { 9 });
 
             Assert.Equal("september.docx", _pdfGenerator.LastUploadedFileName);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData("folder/")]
+        public async Task UploadStatement_FileWithNoName_ThrowsArgumentException(string fileName)
+        {
+            var service = CreateService();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.UploadStatementAsync("1000000001", fileName, new byte[] { 9 }));
+        }
+
+        [Fact]
+        public async Task UploadStatement_FileNameMissingAltogether_ThrowsArgumentException()
+        {
+            var service = CreateService();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.UploadStatementAsync("1000000001", null!, new byte[] { 9 }));
+        }
+
+        [Fact]
+        public async Task CreateDownloadLink_StatementIdMissingAltogether_ThrowsArgumentException()
+        {
+            var service = CreateService();
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.CreateDownloadLinkAsync(null!, StatementsBaseUrl));
         }
 
         [Fact]
@@ -90,83 +117,94 @@ namespace transaction_aggregation_tests.Statements
             var service = CreateService();
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.UploadStatementAsync("1000000001", September1, September30, "empty.txt", Array.Empty<byte>()));
+                service.UploadStatementAsync("1000000001", "empty.txt", Array.Empty<byte>()));
         }
 
         [Fact]
         public async Task UploadStatement_FileTooBig_ThrowsArgumentException()
         {
-            // With a limit of 1 MB, a file of 1 MB plus 1 byte is one byte too many.
             var service = CreateService(maxUploadSizeMegabytes: 1);
 
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.UploadStatementAsync("1000000001", September1, September30, "big.txt", new byte[1024 * 1024 + 1]));
+                service.UploadStatementAsync("1000000001", "big.txt", new byte[1024 * 1024 + 1]));
         }
 
         [Fact]
-        public async Task UploadStatement_FromDateAfterToDate_ThrowsArgumentException()
+        public async Task UploadStatement_HasNoPeriod_AndDownloadsUnderItsUploadDate()
         {
             var service = CreateService();
+            var statement = await service.UploadStatementAsync("1000000001", "september.txt", new byte[] { 9 });
 
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.UploadStatementAsync("1000000001", September30, September1, "september.txt", new byte[] { 9 }));
+            await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
+            var (fileName, _) = await service.DownloadStatementAsync(statement.Id);
+
+            Assert.Null(statement.FromDate);
+            Assert.Null(statement.ToDate);
+            Assert.Equal($"statement-1000000001-{statement.CreatedAt:yyyy-MM-dd}.pdf", fileName);
         }
 
         [Fact]
-        public async Task DownloadLink_WorksBeforeItExpires()
+        public async Task CreateDownloadLink_PointsAtTheStatement_WithoutAToken()
         {
             var service = CreateService();
             var statement = await service.CreateStatementAsync("1000000001", September1, September30);
 
-            var link = await service.CreateDownloadLinkAsync(statement.Id, DownloadBaseUrl);
-            var (fileName, content) = await service.DownloadStatementAsync(TokenFrom(link.Url));
+            var link = await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
+
+            Assert.Equal($"https://bank.test/api/statements/{statement.Id}/download", link.Url);
+        }
+
+        [Fact]
+        public async Task Download_WorksBeforeTheLinkExpires()
+        {
+            var service = CreateService();
+            var statement = await service.CreateStatementAsync("1000000001", September1, September30);
+
+            await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
+            var (fileName, content) = await service.DownloadStatementAsync(statement.Id);
 
             Assert.Equal("statement-1000000001-2026-09-01-to-2026-09-30.pdf", fileName);
             Assert.Equal(FakeStatementPdfGenerator.PdfBytes, content);
         }
 
         [Fact]
-        public async Task DownloadLink_StatementIdAndTokenWithSpaces_StillWork()
+        public async Task Download_StatementIdWithSpaces_StillWorks()
         {
             var service = CreateService();
             var statement = await service.CreateStatementAsync("1000000001", September1, September30);
 
-            var link = await service.CreateDownloadLinkAsync($" {statement.Id} ", DownloadBaseUrl);
-            var (_, content) = await service.DownloadStatementAsync($" {TokenFrom(link.Url)} ");
+            await service.CreateDownloadLinkAsync($" {statement.Id} ", StatementsBaseUrl);
+            var (_, content) = await service.DownloadStatementAsync($" {statement.Id} ");
 
             Assert.Equal(FakeStatementPdfGenerator.PdfBytes, content);
         }
 
         [Fact]
-        public async Task DownloadLink_OnlyTheHashOfTheTokenIsSaved()
+        public async Task Download_WithoutADownloadLink_ThrowsNotFound()
         {
             var service = CreateService();
             var statement = await service.CreateStatementAsync("1000000001", September1, September30);
 
-            var link = await service.CreateDownloadLinkAsync(statement.Id, DownloadBaseUrl);
-
-            // If someone stole the database, the saved value would not work as a link.
-            Assert.NotEqual(TokenFrom(link.Url), Assert.Single(_repository.DownloadLinks).TokenHash);
+            await Assert.ThrowsAsync<NotFoundException>(() => service.DownloadStatementAsync(statement.Id));
         }
 
         [Fact]
-        public async Task DownloadLink_AfterItExpires_ThrowsNotFound()
+        public async Task Download_AfterTheLinkExpires_ThrowsNotFound()
         {
-            // A lifetime of -1 minute means the link is already expired the moment it is made.
             var service = CreateService(linkLifetimeMinutes: -1);
             var statement = await service.CreateStatementAsync("1000000001", September1, September30);
 
-            var link = await service.CreateDownloadLinkAsync(statement.Id, DownloadBaseUrl);
+            await service.CreateDownloadLinkAsync(statement.Id, StatementsBaseUrl);
 
-            await Assert.ThrowsAsync<NotFoundException>(() => service.DownloadStatementAsync(TokenFrom(link.Url)));
+            await Assert.ThrowsAsync<NotFoundException>(() => service.DownloadStatementAsync(statement.Id));
         }
 
         [Fact]
-        public async Task DownloadLink_MadeUpToken_ThrowsNotFound()
+        public async Task Download_UnknownStatement_ThrowsNotFound()
         {
             var service = CreateService();
 
-            await Assert.ThrowsAsync<NotFoundException>(() => service.DownloadStatementAsync("NOT-A-REAL-TOKEN"));
+            await Assert.ThrowsAsync<NotFoundException>(() => service.DownloadStatementAsync("3f2b6c1e-8d4a-4c3b-9e51-2a7d0f6b1c9e"));
         }
 
         [Fact]
@@ -175,7 +213,7 @@ namespace transaction_aggregation_tests.Statements
             var service = CreateService();
 
             await Assert.ThrowsAsync<NotFoundException>(() =>
-                service.CreateDownloadLinkAsync("3f2b6c1e-8d4a-4c3b-9e51-2a7d0f6b1c9e", DownloadBaseUrl));
+                service.CreateDownloadLinkAsync("3f2b6c1e-8d4a-4c3b-9e51-2a7d0f6b1c9e", StatementsBaseUrl));
         }
 
         [Fact]
@@ -183,13 +221,7 @@ namespace transaction_aggregation_tests.Statements
         {
             var service = CreateService();
 
-            await Assert.ThrowsAsync<ArgumentException>(() => service.CreateDownloadLinkAsync("hello", DownloadBaseUrl));
-        }
-
-        // The token is the last part of the link: https://bank.test/api/statements/download/{token}
-        private static string TokenFrom(string url)
-        {
-            return url.Split('/').Last();
+            await Assert.ThrowsAsync<ArgumentException>(() => service.CreateDownloadLinkAsync("hello", StatementsBaseUrl));
         }
     }
 }

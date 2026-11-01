@@ -3,7 +3,6 @@ using transaction_aggregation_domain.Entities;
 
 namespace transaction_aggregation_tests.Fakes
 {
-    // Small helpers to build test objects in one line.
     public static class TestData
     {
         public static Transaction Transaction(string id, string accountId, string date, string description, decimal amount, string source = "Fake")

@@ -5,10 +5,6 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace transaction_aggregation_api.Security
 {
-    // Tells Swagger about FAPI for every endpoint that needs a token:
-    //   - shows the padlock, so Swagger sends your access token with the request,
-    //   - adds the optional x-fapi-interaction-id header box, so you can try sending your own id.
-    // Endpoints marked [AllowAnonymous] (only the health check) are left alone.
     public class FapiSwaggerOperationFilter : IOperationFilter
     {
         public void Apply(OpenApiOperation operation, OperationFilterContext context)

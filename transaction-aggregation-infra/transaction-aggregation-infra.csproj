@@ -19,7 +19,6 @@
     <PackageReference Include="QuestPDF" Version="2026.9.1" />
   </ItemGroup>
 
-  <!-- The mock data files are copied next to the app, so it can read them at SeedData/... -->
   <ItemGroup>
     <None Update="SeedData\transactions.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Update="SeedData\mock-bank-transactions.json" CopyToOutputDirectory="PreserveNewest" />
